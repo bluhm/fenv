@@ -99,14 +99,12 @@ fenv_proc(kvm_t *kd, unsigned long p)
 	    user.u_pcb.pcb_savefpu.fp_fxsave.fx_fcw;
 	fenv.__x87.__status = 0xffff0000 |
 	    user.u_pcb.pcb_savefpu.fp_fxsave.fx_fsw;
-	fenv.__x87.__tag = 0xffff0000 |
+	fenv.__x87.__tag = 0xffffff00 |
 	    user.u_pcb.pcb_savefpu.fp_fxsave.fx_ftw;
 	fenv.__x87.__others[0] = user.u_pcb.pcb_savefpu.fp_fxsave.fx_rip;
-	fenv.__x87.__others[1] =
-	    ((user.u_pcb.pcb_savefpu.fp_fxsave.fx_rip >> 32) & 0x0000ffff) |
-	    (user.u_pcb.pcb_savefpu.fp_fxsave.fx_fop << 16);
+	fenv.__x87.__others[1] = user.u_pcb.pcb_savefpu.fp_fxsave.fx_fop << 16;
 	fenv.__x87.__others[2] = user.u_pcb.pcb_savefpu.fp_fxsave.fx_rdp;
-	fenv.__x87.__others[3] = user.u_pcb.pcb_savefpu.fp_fxsave.fx_rdp >> 32;
+	fenv.__x87.__others[3] = 0xffff0000;
 	fenv.__mxcsr = user.u_pcb.pcb_savefpu.fp_fxsave.fx_mxcsr;
 
 	len = write(1, &fenv, sizeof(fenv));
