@@ -26,6 +26,7 @@
 
 #include <err.h>
 #include <fcntl.h>
+#include <fenv.h>
 #include <kvm.h>
 #include <limits.h>
 #include <stdlib.h>
@@ -86,11 +87,29 @@ fenv_proc(kvm_t *kd, unsigned long p)
 {
 	struct proc proc;
 	struct user user;
+	fenv_t  fenv;
+	ssize_t len;
 
 	if (kvm_read(kd, p, &proc, sizeof(proc)) == -1)
 		errx(1, "kvm_read proc: %s", kvm_geterr(kd));
 	if (kvm_read(kd, (u_long)proc.p_addr, &user, sizeof(user)) == -1)
 		errx(1, "kvm_read user: %s", kvm_geterr(kd));
-	if (write(1, &user.u_pcb.pcb_savefpu, sizeof(struct savefpu)) == -1)
-		err(1, "write");
+
+	fenv.__x87.__control = 0xffff0000 |
+	    user.u_pcb.pcb_savefpu.fp_fxsave.fx_fcw;
+	fenv.__x87.__status = 0xffff0000 |
+	    user.u_pcb.pcb_savefpu.fp_fxsave.fx_fsw;
+	fenv.__x87.__tag = 0xffff0000 |
+	    user.u_pcb.pcb_savefpu.fp_fxsave.fx_ftw;
+	fenv.__x87.__others[0] = user.u_pcb.pcb_savefpu.fp_fxsave.fx_rip;
+	fenv.__x87.__others[1] =
+	    ((user.u_pcb.pcb_savefpu.fp_fxsave.fx_rip >> 32) & 0x0000ffff) |
+	    (user.u_pcb.pcb_savefpu.fp_fxsave.fx_fop << 16);
+	fenv.__x87.__others[2] = user.u_pcb.pcb_savefpu.fp_fxsave.fx_rdp;
+	fenv.__x87.__others[3] = user.u_pcb.pcb_savefpu.fp_fxsave.fx_rdp >> 32;
+	fenv.__mxcsr = user.u_pcb.pcb_savefpu.fp_fxsave.fx_mxcsr;
+
+	len = write(1, &fenv, sizeof(fenv));
+	if (len != sizeof(fenv))
+		err(1, "write %zd", len);
 }
