@@ -21,19 +21,53 @@
 #include <fcntl.h>
 #include <kvm.h>
 #include <limits.h>
+#include <stdlib.h>
+#include <unistd.h>
+
+void __dead usage(void);
+
+void __dead
+usage(void)
+{
+	fprintf(stderr, "usage: %s [-M core] [-N system]\n", getprogname());
+	exit(1);
+}
 
 int
 main(int argc, char *argv[])
 {
-	kvm_t *kd;
 	char errbuf[_POSIX2_LINE_MAX];
+	char *memf, *nlistf;
+	kvm_t *kd;
+	int ch;
+	struct nlist nl[] = { { .n_name = "_proc0" }, { .n_name = NULL } };
 
-	kd = kvm_openfiles(NULL, NULL, NULL, O_RDONLY, errbuf);
+
+	memf = nlistf = NULL;
+	while ((ch = getopt(argc, argv, "M:N:")) != -1) {
+		switch(ch) {
+		case 'M':
+			memf = optarg;
+			break;
+		case 'N':
+			nlistf = optarg;
+			break;
+		default:
+			usage();
+		}
+	}
+	argc -= optind;
+	argv += optind;
+
+	kd = kvm_openfiles(nlistf, memf, NULL, O_RDONLY, errbuf);
 	if (kd == NULL)
 		errx(1, "kvm_openfiles: %s", errbuf);
+	if (kvm_nlist(kd, nl) == -1)
+		errx(1, "kvm_nlist: %s", kvm_geterr(kd));
+	if (nl[0].n_type == 0)
+		errx(1, "name '%s' has type %d", nl[0].n_name, nl[0].n_type);
 
 	if (kvm_close(kd) == -1)
 		errx(1, "kvm_close: %s", kvm_geterr(kd));
-
 	return 0;
 }
