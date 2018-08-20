@@ -17,14 +17,23 @@
 
 /* Read fpu storage area from proc0 via /dev/kmem. */
 
+#include <sys/types.h>
+#include <sys/signal.h>
+#include <sys/proc.h>
+#include <sys/user.h>
+#include <machine/fpu.h>
+#include <machine/pcb.h>
+
 #include <err.h>
 #include <fcntl.h>
 #include <kvm.h>
 #include <limits.h>
 #include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
 
 void __dead usage(void);
+void fenv_proc(kvm_t *, unsigned long);
 
 void __dead
 usage(void)
@@ -41,7 +50,6 @@ main(int argc, char *argv[])
 	kvm_t *kd;
 	int ch;
 	struct nlist nl[] = { { .n_name = "_proc0" }, { .n_name = NULL } };
-
 
 	memf = nlistf = NULL;
 	while ((ch = getopt(argc, argv, "M:N:")) != -1) {
@@ -66,8 +74,23 @@ main(int argc, char *argv[])
 		errx(1, "kvm_nlist: %s", kvm_geterr(kd));
 	if (nl[0].n_type == 0)
 		errx(1, "name '%s' has type %d", nl[0].n_name, nl[0].n_type);
+	fenv_proc(kd, nl[0].n_value);
 
 	if (kvm_close(kd) == -1)
 		errx(1, "kvm_close: %s", kvm_geterr(kd));
 	return 0;
+}
+
+void
+fenv_proc(kvm_t *kd, unsigned long p)
+{
+	struct proc proc;
+	struct user user;
+
+	if (kvm_read(kd, p, &proc, sizeof(proc)) == -1)
+		errx(1, "kvm_read proc: %s", kvm_geterr(kd));
+	if (kvm_read(kd, (u_long)proc.p_addr, &user, sizeof(user)) == -1)
+		errx(1, "kvm_read user: %s", kvm_geterr(kd));
+	if (write(1, &user.u_pcb.pcb_savefpu, sizeof(struct savefpu)) == -1)
+		err(1, "write");
 }

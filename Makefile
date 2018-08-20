@@ -13,6 +13,6 @@ run-regress-fenv: ${PROGS}
 
 REGRESS_TARGETS +=	run-regress-fproc
 run-regress-fproc: ${PROGS}
-	${SUDO} ./fproc
+	${SUDO} ./fproc | hexdump -C
 
 .include <bsd.regress.mk>
