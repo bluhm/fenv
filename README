@@ -2,3 +2,6 @@ The OpenBSD test regress/lib/libm/fenv prints strange values from
 the Intel and AMD FPU using the libm function fegetenv(3).  Load
 the FPU status directy after exec with an assembly program to learn
 what is going on.
+
+Read FPU storage area from proc0 and check that it contains the
+initialization values.

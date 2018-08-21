@@ -15,10 +15,9 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* Read FPU storage area from proc0 via /dev/kmem. */
+/* Read and print FPU storage area from proc0 via /dev/mem. */
 
-#include <sys/types.h>
-#include <sys/signal.h>
+#include <sys/param.h>
 #include <sys/proc.h>
 #include <sys/user.h>
 #include <machine/fpu.h>
@@ -26,11 +25,10 @@
 
 #include <err.h>
 #include <fcntl.h>
-#include <fenv.h>
 #include <kvm.h>
 #include <limits.h>
+#include <stdio.h>
 #include <stdlib.h>
-#include <string.h>
 #include <unistd.h>
 
 void __dead usage(void);
@@ -67,6 +65,8 @@ main(int argc, char *argv[])
 	}
 	argc -= optind;
 	argv += optind;
+	if (argc)
+		usage();
 
 	kd = kvm_openfiles(nlistf, memf, NULL, O_RDONLY, errbuf);
 	if (kd == NULL)
@@ -87,27 +87,32 @@ fenv_proc(kvm_t *kd, unsigned long p)
 {
 	struct proc proc;
 	struct user user;
-	fenv_t  fenv;
-	ssize_t len;
+	struct fxsave64 *fxs = &user.u_pcb.pcb_savefpu.fp_fxsave;
+	size_t i;
 
 	if (kvm_read(kd, p, &proc, sizeof(proc)) == -1)
 		errx(1, "kvm_read proc: %s", kvm_geterr(kd));
 	if (kvm_read(kd, (u_long)proc.p_addr, &user, sizeof(user)) == -1)
 		errx(1, "kvm_read user: %s", kvm_geterr(kd));
 
-	fenv.__x87.__control = 0xffff0000 |
-	    user.u_pcb.pcb_savefpu.fp_fxsave.fx_fcw;
-	fenv.__x87.__status = 0xffff0000 |
-	    user.u_pcb.pcb_savefpu.fp_fxsave.fx_fsw;
-	fenv.__x87.__tag = 0xffffff00 |
-	    user.u_pcb.pcb_savefpu.fp_fxsave.fx_ftw;
-	fenv.__x87.__others[0] = user.u_pcb.pcb_savefpu.fp_fxsave.fx_rip;
-	fenv.__x87.__others[1] = user.u_pcb.pcb_savefpu.fp_fxsave.fx_fop << 16;
-	fenv.__x87.__others[2] = user.u_pcb.pcb_savefpu.fp_fxsave.fx_rdp;
-	fenv.__x87.__others[3] = 0xffff0000;
-	fenv.__mxcsr = user.u_pcb.pcb_savefpu.fp_fxsave.fx_mxcsr;
-
-	len = write(1, &fenv, sizeof(fenv));
-	if (len != sizeof(fenv))
-		err(1, "write %zd", len);
+	printf("fcw\t%04x\n", fxs->fx_fcw);
+	printf("fsw\t%04x\n", fxs->fx_fsw);
+	printf("ftw\t%02x\n", fxs->fx_ftw);
+	printf("unused1\t%02x\n", fxs->fx_unused1);
+	printf("fop\t%04x\n", fxs->fx_fop);
+	printf("rip\t%016llx\n", fxs->fx_rip);
+	printf("rdp\t%016llx\n", fxs->fx_rdp);
+	printf("mxcsr\t%08x\n", fxs->fx_mxcsr);
+	printf("mxcsr_mask\t%08x\n", fxs->fx_mxcsr_mask);
+	for (i = 0; i < nitems(fxs->fx_st); i++) {
+		printf("st\t%016llx:%016llx\n",
+		    fxs->fx_st[i][1], fxs->fx_st[i][0]);
+	}
+	for (i = 0; i < nitems(fxs->fx_xmm); i++) {
+		printf("xmm\t%016llx:%016llx\n",
+		    fxs->fx_xmm[i][1], fxs->fx_xmm[i][0]);
+	}
+	for (i = 0; i < nitems(fxs->fx_unused3); i++) {
+		printf("unused3\t%02x\n", fxs->fx_unused3[i]);
+	}
 }

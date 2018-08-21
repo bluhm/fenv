@@ -5,6 +5,7 @@ SRCS_fenv =	fenv.S
 LDADD_fenv =	-nostdlib -nopie
 LDADD_fdump =	-lm
 LDADD_fxproc0 =	-lkvm
+CFLAGS =	-O2 ${PIPE} ${DEBUG} -Wformat
 WARNINGS =	yes
 
 REGRESS_TARGETS +=	run-regress-fenv
@@ -13,6 +14,6 @@ run-regress-fenv: ${PROGS}
 
 REGRESS_TARGETS +=	run-regress-fxproc0
 run-regress-fxproc0: ${PROGS}
-	${SUDO} ./fxproc0 | ./fdump
+	${SUDO} ./fxproc0
 
 .include <bsd.regress.mk>
