@@ -15,8 +15,6 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* Read and print FPU storage area from proc0 via /dev/mem. */
-
 #include <sys/param.h>
 #include <sys/proc.h>
 #include <sys/user.h>

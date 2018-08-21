@@ -15,8 +15,6 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* Print default libm FPU environment to stdout. */
-
 #include <sys/param.h>
 
 #include <fenv.h>

@@ -15,8 +15,6 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* Read FPU environment and print it to stdout. */
-
 #include <sys/param.h>
 
 #include <err.h>
