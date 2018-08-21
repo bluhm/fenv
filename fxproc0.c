@@ -95,6 +95,9 @@ fenv_proc(kvm_t *kd, unsigned long p)
 	if (kvm_read(kd, (u_long)proc.p_addr, &user, sizeof(user)) == -1)
 		errx(1, "kvm_read user: %s", kvm_geterr(kd));
 
+	if (fxs != &fxs->fx_fcw)
+		errx(1, "fxsave start %p, fx_fcw start %p",
+		    &fxs, &fxs->fx_fcw);
 	printf("fcw\t%04x\n", fxs->fx_fcw);
 	printf("fsw\t%04x\n", fxs->fx_fsw);
 	printf("ftw\t%02x\n", fxs->fx_ftw);
@@ -104,15 +107,24 @@ fenv_proc(kvm_t *kd, unsigned long p)
 	printf("rdp\t%016llx\n", fxs->fx_rdp);
 	printf("mxcsr\t%08x\n", fxs->fx_mxcsr);
 	printf("mxcsr_mask\t%08x\n", fxs->fx_mxcsr_mask);
-	for (i = 0; i < nitems(fxs->fx_st); i++) {
-		printf("st\t%016llx:%016llx\n",
+	if (&fxs->fx_mxcsr_mask + 1 != fxs->fx_st)
+		errx(1, "fx_mxcsr_mask end %p, fx_st start %p",
+		    &fxs->fx_mxcsr_mask + 1, fxs->fx_st);
+	for (i = 0; i < nitems(fxs->fx_st); i++)
+		printf("st[%zu]\t%016llx:%016llx\n", i,
 		    fxs->fx_st[i][1], fxs->fx_st[i][0]);
-	}
-	for (i = 0; i < nitems(fxs->fx_xmm); i++) {
-		printf("xmm\t%016llx:%016llx\n",
+	if (&fxs->fx_st[i] != fxs->fx_xmm)
+		errx(1, "fx_st end %p, fx_xmm start %p",
+		    &fxs->fx_st[i], fxs->fx_xmm);
+	for (i = 0; i < nitems(fxs->fx_xmm); i++)
+		printf("xmm[%zu]\t%016llx:%016llx\n", i,
 		    fxs->fx_xmm[i][1], fxs->fx_xmm[i][0]);
-	}
-	for (i = 0; i < nitems(fxs->fx_unused3); i++) {
-		printf("unused3\t%02x\n", fxs->fx_unused3[i]);
-	}
+	if (&fxs->fx_xmm[i] != fxs->fx_unused3)
+		errx(1, "fx_xmm end %p, fx_unused3 start %p",
+		    &fxs->fx_xmm[i], fxs->fx_unused3);
+	for (i = 0; i < nitems(fxs->fx_unused3); i++)
+		printf("unused3[%zu]\t%02x\n", i, fxs->fx_unused3[i]);
+	if (&fxs->fx_unused3[i] != fxs + 1)
+		errx(1, "fx_unused3 end %p, fxsave end %p",
+		    &fxs->fx_unused3[i], fxs + 1);
 }
