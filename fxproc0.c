@@ -15,7 +15,7 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* Read fpu storage area from proc0 via /dev/kmem. */
+/* Read FPU storage area from proc0 via /dev/kmem. */
 
 #include <sys/types.h>
 #include <sys/signal.h>
