@@ -15,24 +15,29 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
-/* Print default libm FPU environment to stdout. */
+/* Get FPU environment from libm and print it to stdout. */
 
 #include <sys/param.h>
 
+#include <err.h>
 #include <fenv.h>
 #include <stdio.h>
 
 int
 main(int argc, char *argv[])
 {
+	fenv_t fenv;
 	size_t i;
 
-	printf("control\t%08x\n", FE_DFL_ENV->__x87.__control);
-	printf("status\t%08x\n", FE_DFL_ENV->__x87.__status);
-	printf("tag\t%08x\n", FE_DFL_ENV->__x87.__tag);
-	for (i = 0; i < nitems(FE_DFL_ENV->__x87.__others); i++)
-		printf("others[%zu]\t%08x\n", i, FE_DFL_ENV->__x87.__others[i]);
-	printf("mxcsr\t%08x\n", FE_DFL_ENV->__mxcsr);
+	if (fegetenv(&fenv))
+		err(1, "fegetenv");
+
+	printf("control\t%08x\n", fenv.__x87.__control);
+	printf("status\t%08x\n", fenv.__x87.__status);
+	printf("tag\t%08x\n", fenv.__x87.__tag);
+	for (i = 0; i < nitems(fenv.__x87.__others); i++)
+		printf("others[%zu]\t%08x\n", i, fenv.__x87.__others[i]);
+	printf("mxcsr\t%08x\n", fenv.__mxcsr);
 
 	return 0;
 }
