@@ -15,6 +15,8 @@
  * OR IN CONNECTION WITH THE USE OR PERFORMANCE OF THIS SOFTWARE.
  */
 
+/* Load FPU environment directly at _start and write it to stdout. */
+
 #include <sys/syscall.h>
 
 	.section	.note.openbsd.ident, "a"
