@@ -9,6 +9,7 @@ LDADD_fxproc0 =	-lkvm
 CFLAGS =	-O2 ${PIPE} ${DEBUG}
 CFLAGS +=	-Wformat -Wno-compare-distinct-pointer-types
 WARNINGS =	yes
+CLEANFILES =	*.out
 
 MODEL !=	sysctl -n hw.model | tr -c '[:alnum:]' '_'
 ALLOWKMEM !=	sysctl -n kern.allowkmem
